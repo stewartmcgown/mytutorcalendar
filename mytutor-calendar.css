@@ -1,0 +1,35 @@
+/* Calendar Button */
+.mytutor-calendar-button {
+	margin-left: 8px;
+}
+
+.mytutor-calendar-button > .r_button--more::after {
+	content: '\f073';
+	font-family: FontAwesome;
+	background-image: none;
+}
+
+#syncToGoogleCalendar {
+    min-width: 200px;
+    min-height: 40px;
+}
+
+#syncToGoogleCalendar.syncing > span {
+    display: none;
+}
+
+#syncToGoogleCalendar i.syncing {
+    position: relative;
+}
+
+#syncToGoogleCalendar i.syncing::after {
+	content: " ";
+	position: absolute;
+	top: calc(50% - .5em);
+	left: calc(50% - .5em);
+	width: 1em;
+	height: 1em;
+	background: url("/images/spinner-white.svg") no-repeat center center;
+	background-size: contain;
+	animation: spinner .6s linear infinite
+}
