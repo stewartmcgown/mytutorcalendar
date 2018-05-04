@@ -3,7 +3,7 @@
 
   "name": "MyTutor Calendar",
   "description": "Add MyTutor bookings to your calendar automatically.",
-  "version": "2.1",
+  "version": "2.2",
   
   "icons": { "16": "icon16.png",
            "32": "icon32.png",

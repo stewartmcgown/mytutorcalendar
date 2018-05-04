@@ -64,9 +64,7 @@ Date.prototype.addHours= function(h){
 }
 
 // Main
-
-// Check if sync is enabled
-$(document).ready(function(){
+function initialSetup() {
 
     chrome.storage.sync.get(['enableSync'], function(items) {
         $('div.filters > div.row').append(
@@ -177,9 +175,21 @@ $(document).ready(function(){
 
 
     });
+}
 
 
+// Check if sync is enabled
+$(document).ready(function(){
 
+    initialSetup();
+
+    // Watch for load more
+
+    $("#classbookingform\\:classbookingtabs\\:loadMoreUpcomingSessions").on("click", function () {
+        setTimeout(function(){
+            initialSetup();
+        }, 1000);
+    });
 });
 
 
