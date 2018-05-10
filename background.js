@@ -38,19 +38,21 @@ async function doSync(sessions) {
 					// Calendar exists
 					window.calendarID = data.items[i].id;
 
-					let init = {
+					var currentDate = new Date().toISOString().split('.')[0]+"Z";
+
+					let events_object = {
 						method: 'GET',
 						async: true,
 						headers: {
 							Authorization: 'Bearer ' + token,
 							'Content-Type': 'application/json'
 						},
-						'contentType': 'json'
+						'contentType': 'json',
 					};
 
 					fetch(
-						'https://www.googleapis.com/calendar/v3/calendars/' + window.calendarID + '/events',
-						init)
+						'https://www.googleapis.com/calendar/v3/calendars/' + window.calendarID + '/events?timeMin=' + currentDate,
+						events_object)
 					.then((response) => response.json())
 					.then(function (data) {
 						// Processing finished
@@ -86,7 +88,7 @@ async function doSync(sessions) {
 			.then((response) => response.json())
 			.then(function (data) {
 				// Processing finished
-				console.log(data);
+				//console.log(data);
 				window.calendarID = data.id;
                 compareEvents(data, data.id, sessions);
 			});
@@ -100,6 +102,24 @@ var settings = new Object();
 settings.overwrite = true;
 
 function compareEvents(events, calendarID, sessions) {
+	// process for deletions
+    var last_shown_lesson_time = new Date(sessions[sessions.length - 1].startTime);
+    var first_shown_lesson_time = new Date(sessions[0].startTime);
+
+    for (let i = 0; i < events.items.length; i++) {
+    	var is_deleted = true;
+
+        for (let j = 0; j < sessions.length; j++) {
+			if (events.items[i].start.dateTime == sessions[j].startTime &&
+				events.items[i].summary == sessions[j].fullTitle)
+				is_deleted = false;
+        }
+
+        if (is_deleted && last_shown_lesson_time > new Date(events.items[i].start.dateTime)) {
+            deleteEvent(events.items[i].id)
+		}
+    }
+
     for (let j = 0; j < sessions.length; j++) {
 
 	    var matching_session = false;
@@ -115,15 +135,8 @@ function compareEvents(events, calendarID, sessions) {
                 if (events.items[i].summary != sessions[j].fullTitle) {
                     console.log("Found Existing Event with non-matching title: " + sessions[j].fullTitle);
 
-                    if (settings.overwrite) {
-                        // MyTutor takes priority
-                        deleteEvent(events.items[i].id);
-                        break;
-                    } else {
-                        console.log("Skipping overwrite due to settings.");
-                        matching_session = true;
-                        break;
-                    }
+                    deleteEvent(events.items[i].id);
+                    break;
 
                 } else {
                     console.log("Found Existing Event: " + sessions[j].fullTitle);
@@ -132,14 +145,16 @@ function compareEvents(events, calendarID, sessions) {
                 }
 
             }
-        }
+	    }
+
+
 
         if (!matching_session) {
+            console.log("Found new session: " + sessions[j].fullTitle);
+
 	        // Add new event (always called if match is false)
             createEvent(sessions[j]);
         }
-
-
 	}
 
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs){

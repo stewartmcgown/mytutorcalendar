@@ -81,7 +81,15 @@ function initialSetup() {
             $('#syncToGoogleCalendar').toggleClass('syncing');
             $('#syncToGoogleCalendar > i').toggleClass('syncing');
 
+            /**
+             * This will rebind the event for load more
+             */
 
+            $("#classbookingform\\:classbookingtabs\\:loadMoreUpcomingSessions").on("click", function () {
+                setTimeout(function(){
+                    initialSetup();
+                }, 1000);
+            });
 
             /**
              * This for each method is integral in collecting the actual booking information.
@@ -185,11 +193,7 @@ $(document).ready(function(){
 
     // Watch for load more
 
-    $("#classbookingform\\:classbookingtabs\\:loadMoreUpcomingSessions").on("click", function () {
-        setTimeout(function(){
-            initialSetup();
-        }, 1000);
-    });
+
 });
 
 
