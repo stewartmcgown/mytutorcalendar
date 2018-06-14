@@ -4,7 +4,7 @@
 */
 window.toasts = 0;
 
-function toast(content){
+function toast(content,icon){
     window.toasts += 1;
     $("body").append(
         '<div class="toast" id="toast-'+toasts+'"></div>'
@@ -14,6 +14,11 @@ function toast(content){
     
     /* apply options */
     toast.html(content);
+
+    if (icon)
+        toast.prepend("<i class='fa fa-" + icon + "'></i>");
+
+    //toast.append("<a href='#' data-dismiss='toast' class='toast-link'>Done</a>")
 
     toast.addClass("toast-opening");
 

@@ -1,3 +1,10 @@
+chrome.runtime.onInstalled.addListener(function(details){
+    if(details.reason == "install"){
+        console.log("This is a first install!");
+    }else if(details.reason == "update"){
+        chrome.storage.sync.clear();
+    }
+});
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request instanceof Array) {
@@ -110,12 +117,14 @@ function compareEvents(events, calendarID, sessions) {
     	var is_deleted = true;
 
         for (let j = 0; j < sessions.length; j++) {
-			if (events.items[i].start.dateTime == sessions[j].startTime &&
-				events.items[i].summary == sessions[j].fullTitle)
-				is_deleted = false;
+            if (events.items[i].start.dateTime == sessions[j].startTime &&
+                events.items[i].summary == sessions[j].fullTitle) {
+                is_deleted = false;
+            }
         }
 
         if (is_deleted && last_shown_lesson_time > new Date(events.items[i].start.dateTime)) {
+            console.log("Event has been deleted: " + events.items[i].summary);
             deleteEvent(events.items[i].id)
 		}
     }
@@ -157,9 +166,17 @@ function compareEvents(events, calendarID, sessions) {
         }
 	}
 
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
-        chrome.tabs.sendMessage(tabs[0].id, {action: "finished_sync"}, function(response) {});
-    });
+    window.check_for_finished_sync = window.setInterval(function(){
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+            if (tabs[0]) {
+                chrome.tabs.sendMessage(tabs[0].id, {action: "finished_sync"}, function (response) {
+                });
+
+                window.clearInterval(window.check_for_finished_sync);
+            }
+        });
+    }, 500);
+
 }
 
 // UTILS

@@ -12,6 +12,17 @@
     z-index: 99999;
 }
 
+.toast > i {
+    margin-right: 16px;
+}
+
+.toast > .toast-link {
+    text-transform: uppercase;
+    color: #3789eb;
+    font-weight: 600;
+    margin-left: 16px;
+}
+
 .toast-opening {
     animation: openToast 1s;
     bottom: -100px;

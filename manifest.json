@@ -3,7 +3,7 @@
 
   "name": "MyTutor Calendar",
   "description": "Add MyTutor bookings to your calendar automatically.",
-  "version": "2.5",
+  "version": "3.2.1",
   
   "icons": { "16": "icon16.png",
            "32": "icon32.png",
@@ -14,7 +14,7 @@
     [{
       "matches": ["https://www.mytutor.co.uk/tutors/secure/bookings.html"],
 	  "css": ["mytutor-calendar.css","tc-toast.css"],
-      "js": ["jquery.js", "mytutor-calendar.js","tc-simpletoast.js"]
+      "js": ["jquery.js", "mytutor-calendar.js","tc-simpletoast.js","past-prices.js"]
     }],
 	
 	   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmHudFqPlA36nwEqU2JyMv42la29ghOiMCbUNX1SF48hfgucmI5cGtaDDSfGMHw2LzoEoqbc3mgnl3rVf16IKB7yvOupmjw/rbp51e4FY1+Pt0ESJeW724ou2T4VQVmX6ghQAV9Dm1FdPuTKRcZFC6KEIelHxIgiyZF3VHNj7T3qhsgoTB3TOMgoawzaI2g87BfIBjhcZKgKhN4aSFHfnc8a6zOtPp91lQTjGEm6Qwm2bIL0H6GZjjGOjQdXsWJjJpFQevV2NB9QrQY1veUIcZyjkymU7Ac1wrT7/eYlNTwrVZziGibfylIgfbR1oXjYT4aV6gkXGYk5T+Ek3iAf0RwIDAQAB",
