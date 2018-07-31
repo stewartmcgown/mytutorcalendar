@@ -1,231 +1,235 @@
-chrome.runtime.onInstalled.addListener(function(details){
-    if(details.reason == "install"){
-        console.log("This is a first install!");
-    }else if(details.reason == "update"){
-        chrome.storage.sync.clear();
+class PayloadMisingException extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "PayloadMissingException"
     }
-});
-
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    if (request instanceof Array) {
-        chrome.storage.sync.set({'enableSync': true}, function() {
-            doSync(request);
-        });
-    }
-
-	// Listener must always return true
-	return true;
-});
-
-// AUTHENTICATION
-
-// FETCH
-async function doSync(sessions) {
-	chrome.identity.getAuthToken({
-		interactive: true
-	}, function (token) {
-
-		let calendarsOptions = {
-			method: 'GET',
-			async: true,
-			headers: {
-				Authorization: 'Bearer ' + token,
-				'Content-Type': 'application/json'
-			},
-			'contentType': 'json'
-		};
-
-		fetch(
-			'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-			calendarsOptions)
-		.then((response) => response.json())
-		.then((data) => {
-			for (var i = 0; i < data.items.length; i++) {
-				if (data.items[i].summary === "MyTutor Bookings") {
-					// Calendar exists
-					window.calendarID = data.items[i].id;
-
-					var currentDate = new Date().toISOString().split('.')[0]+"Z";
-
-					let events_object = {
-						method: 'GET',
-						async: true,
-						headers: {
-							Authorization: 'Bearer ' + token,
-							'Content-Type': 'application/json'
-						},
-						'contentType': 'json',
-					};
-
-					fetch(
-						'https://www.googleapis.com/calendar/v3/calendars/' + window.calendarID + '/events?timeMin=' + currentDate,
-						events_object)
-					.then((response) => response.json())
-					.then(function (data) {
-						// Processing finished
-						console.log(data);
-						compareEvents(data, window.calendarID, sessions);
-						//sendResponse(data);
-					});
-
-					// DONE
-					return true;
-				}
-			}
-
-			// IE no calendar exists
-			var payload_calendar = {
-				summary: "MyTutor Bookings"
-			};
-
-			var createCalendarObject = {
-				method: "POST",
-				async: true,
-				headers: {
-					Authorization: 'Bearer ' + token,
-					'Content-Type': 'application/json',
-
-				},
-				body: JSON.stringify(payload_calendar)
-			}
-
-			fetch(
-				'https://www.googleapis.com/calendar/v3/calendars',
-				createCalendarObject)
-			.then((response) => response.json())
-			.then(function (data) {
-				// Processing finished
-				//console.log(data);
-				window.calendarID = data.id;
-                compareEvents(data, data.id, sessions);
-			});
-		});
-
-	});
 }
 
-// LOGIC
-var settings = new Object();
-settings.overwrite = true;
-
-function compareEvents(events, calendarID, sessions) {
-	// process for deletions
-    var last_shown_lesson_time = new Date(sessions[sessions.length - 1].startTime);
-    var first_shown_lesson_time = new Date(sessions[0].startTime);
-
-    for (let i = 0; i < events.items.length; i++) {
-    	var is_deleted = true;
-
-        for (let j = 0; j < sessions.length; j++) {
-            if (events.items[i].start.dateTime == sessions[j].startTime &&
-                events.items[i].summary == sessions[j].fullTitle) {
-                is_deleted = false;
-            }
-        }
-
-        if (is_deleted && last_shown_lesson_time > new Date(events.items[i].start.dateTime)) {
-            console.log("Event has been deleted: " + events.items[i].summary);
-            deleteEvent(events.items[i].id)
-		}
+class CalendarListMissingException extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "CalendarListMissingException"
     }
-
-    for (let j = 0; j < sessions.length; j++) {
-
-	    var matching_session = false;
-
-	    if (events.items == null) {
-            createEvent(sessions[j]);
-            continue;
-        }
-
-        for (let i = 0; i < events.items.length; i++) {
-
-            if (events.items[i].start.dateTime == sessions[j].startTime){
-                if (events.items[i].summary != sessions[j].fullTitle) {
-                    console.log("Found Existing Event with non-matching title: " + sessions[j].fullTitle);
-
-                    deleteEvent(events.items[i].id);
-                    break;
-
-                } else {
-                    console.log("Found Existing Event: " + sessions[j].fullTitle);
-                    matching_session = true;
-                    break;
-                }
-
-            }
-	    }
-
-
-
-        if (!matching_session) {
-            console.log("Found new session: " + sessions[j].fullTitle);
-
-	        // Add new event (always called if match is false)
-            createEvent(sessions[j]);
-        }
-	}
-
-    window.check_for_finished_sync = window.setInterval(function(){
-        chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
-            if (tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, {action: "finished_sync"}, function (response) {
-                });
-
-                window.clearInterval(window.check_for_finished_sync);
-            }
-        });
-    }, 500);
-
 }
 
-// UTILS
-function createEvent(session) {
-    chrome.identity.getAuthToken({
-        interactive: true
-    }, function (token) {
-        var event_payload = {
-            start: {
-                dateTime: session.startTime
-            },
-            end: {
-                dateTime: session.endTime
-            },
-            summary: session.fullTitle
-        }
+class Request {
+    constructor(method, payload, asyncEnabled = true) {
+        this.method = method
+        this.payload = payload
+        this.async = asyncEnabled
+    }
 
-        var createEvent = {
-            method: "POST",
-            async: true,
+    async asObject() {
+        let token = await chrome.identity.getAuthToken({ interactive: true })
+
+        let object = {
+            method: this.method,
+            async: this.asyncEnabled,
             headers: {
-                Authorization: 'Bearer ' + token,
+                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(event_payload)
+            'contentType': 'json'
         }
 
-        fetch(
-            'https://www.googleapis.com/calendar/v3/calendars/'+window.calendarID+'/events',
-            createEvent);
-    });
+        if (this.payload)
+            object.body = JSON.stringify(this.payload)
+
+        return object
+    }
 }
 
-function deleteEvent(eventID) {
-    chrome.identity.getAuthToken({
-        interactive: true
-    }, function (token) {
-        // IE no calendar exists
-        var deleteEvent = {
-            method: "DELETE",
-            async: true,
-            headers: {
-                Authorization: 'Bearer ' + token,
-                'Content-Type': 'application/json',
-            }
+chrome.runtime.onMessage.addListener((message) => {
+    main(message)
+
+    // Listener must always return true
+    return true;
+});
+
+class SyncEngine {
+    constructor(sessions, id) {
+        // Process message and set up engine
+        this.localSessions = sessions
+
+        // Constants
+        this.constants = {
+            CalendarListEndpoint: 'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+            CalendarCreateEndpoint: 'https://www.googleapis.com/calendar/v3/calendars',
+            CalendarName: 'MyTutor Bookings'
         }
+    }
+
+    /**
+     * Create calendar and return id
+     */
+
+    async createCalendar(name) {
+        let post = await new Request("POST", { summary: name }).asObject()
+
+        let calendar = await fetch(
+            this.constants.CalendarCreateEndpoint,
+            post)
+
+        calendar = await calendar.json()
+
+        return calendar.id
+    }
+
+    /**
+     * Creates an event
+     */
+
+    async createRemoteSession(session) {
+        let post = await new Request("POST", {
+            start: {
+                dateTime: session.time.google.start
+            },
+            end: {
+                dateTime: session.time.google.end
+            },
+            summary: session.title
+        }).asObject()
+
+        let calendar_id = await this.getRemoteID()
 
         fetch(
-            'https://www.googleapis.com/calendar/v3/calendars/'+window.calendarID+'/events/'+eventID,
-            deleteEvent);
-    });
+            `https://www.googleapis.com/calendar/v3/calendars/${calendar_id}/events`,
+            post);
+    }
+
+    /**
+     * Returns the id of the remote calendar
+     */
+
+    async getRemoteID() {
+        let get = await new Request("GET").asObject()
+
+        let response = await fetch(
+            this.constants.CalendarListEndpoint,
+            get)
+
+        response = await response.json()
+
+        if (response.items) {
+            for (var item of response.items) {
+                if (item.summary == this.constants.CalendarName) {
+                    return item.id
+                }
+            }
+
+            return await this.createCalendar(this.constants.CalendarName)
+        } else {
+            throw new CalendarListMissingException()
+        }
+
+    }
+
+    /**
+     * Returns a copy of all the sessions stored in 
+     * the calendar
+     */
+    async getRemoteSessions() {
+        let id = await this.getRemoteID()
+        let get = await new Request("GET").asObject()
+        let date = new Date().toGoogleCalenderString()
+
+        let events = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${id}/events?timeMin=${date}`,
+            get)
+
+        events = await events.json()
+
+        return events
+    }
+
+    /**
+     * Deletes a remote session
+     */
+    async deleteRemoteSession(deletion_id) {
+        let remote_id = await this.getRemoteID()
+        let del = await new Request("DELETE").asObject()
+
+        fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${remote_id}/events/${deletion_id}`,
+            del);
+    }
+
+    /**
+     * Pushes local changes to calendar.
+     * 
+     * To handle cancellations, we have to make sure we only compare up
+     * to the last available time.
+     * The sessions are sorted already by time so we just get the final
+     * one and extract the time from it.
+     * 
+     * Then, we must run through the array of local sessions, check
+     * if there is a corresponding session in the calendar, and if not,
+     * upload an event.
+     * 
+     * Should there be an event in the remote calendar that is not present
+     * in the local one, delete it.
+     */
+    compareSessions() {
+        let final = new Date(this.localSessions[this.localSessions.length - 1].time.start)
+        let first = new Date(this.localSessions[0].time.start)
+
+        // Process deletions
+        for (var remote of this.remoteSessions.items) {
+            let deleted = true
+
+            for (var local of this.localSessions)
+                if (remote.start.dateTime == local.time.google.start
+                    && remote.summary == local.title) 
+                        deleted = false
+
+            if (deleted && final >= new Date(remote.start.dateTime))
+                this.deleteRemoteSession(remote.id)
+        }
+
+        for (var local of this.localSessions) {
+            let matching = false
+
+            for (var remote of this.remoteSessions.items) {
+                if (remote.start.dateTime == local.time.google.start
+                    && remote.summary == local.title) {
+                    // This is an existing event
+                    matching = true
+                    break      
+                    }
+            }
+
+            if (!matching) {
+                // This is a new session
+                this.createRemoteSession(local)
+            }
+
+        }
+
+
+    }
+
+
+    async sync() {
+        this.remoteSessions = await this.getRemoteSessions()
+
+        console.log(this.remoteSessions)
+
+        await this.compareSessions()
+    }
+}
+
+Date.prototype.toGoogleCalenderString = function () {
+    return this.toISOString().split('.')[0] + "Z"
+}
+
+function main(message) {
+    if (message.action == 'sync') {
+        if (message.payload != undefined) {
+            let syncEngine = new SyncEngine(message.payload)
+
+            syncEngine.sync()
+        } else {
+            throw new PayloadMisingException()
+        }
+    }
 }
