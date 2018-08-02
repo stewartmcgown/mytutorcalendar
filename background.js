@@ -19,8 +19,21 @@ class Request {
         this.async = asyncEnabled
     }
 
-    async asObject() {
+    /**
+     * Handles authentication and returns an up to date authtoken
+     */
+    async authenticate(reauthenticate=false) {
         let token = await chrome.identity.getAuthToken({ interactive: true })
+
+        if (reauthenticate)
+            await chrome.identity.removeCachedAuthToken({token: token})
+
+        return await chrome.identity.getAuthToken({ interactive: true })
+    }
+
+    async asObject(reauthenticate=false) {
+        // Catches first time users simply.
+        let token = await this.authenticate()
 
         let object = {
             method: this.method,
@@ -211,8 +224,6 @@ class SyncEngine {
 
     async sync() {
         this.remoteSessions = await this.getRemoteSessions()
-
-        console.log(this.remoteSessions)
 
         await this.compareSessions()
     }

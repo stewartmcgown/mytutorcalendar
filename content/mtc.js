@@ -2,8 +2,6 @@
  * Global variables
  */
 
-let SESSIONS = [];
-
 const PAYMENT_FIRST_DATE = new Date("2018-04-17");
 const PAYMENT_GROUPS_START_DATE = new Date("2018-03-31");
 const PAYMENT_GROUPS_LENGTH = 14;
@@ -68,9 +66,9 @@ class Session {
     }
 
     getPaymentDate() {
-        const dayNumber = day_from_date(this.getStartTime());
+        const dayNumber = this.getStartTime().asInteger();
 
-        const dateGroups = Math.ceil((dayNumber - day_from_date(PAYMENT_GROUPS_START_DATE)) / PAYMENT_GROUPS_LENGTH);
+        const dateGroups = Math.ceil((dayNumber - PAYMENT_GROUPS_START_DATE.asInteger()) / PAYMENT_GROUPS_LENGTH);
 
         const endOfPaymentGroup = new Date(PAYMENT_GROUPS_START_DATE.getTime() + dateGroups * PAYMENT_GROUPS_LENGTH * DAY);
 
@@ -98,9 +96,9 @@ Date.prototype.toGoogleCalenderString = function () {
     return this.toISOString().split('.')[0] + "Z"
 }
 
-function day_from_date(input) {
-    const start = new Date(input.getFullYear(), 0, 0);
-    const diff = (input - start) + ((start.getTimezoneOffset() - input.getTimezoneOffset()) * 60 * 1000);
+Date.prototype.asInteger = function() {
+    const start = new Date(this.getFullYear(), 0, 0);
+    const diff = (this - start) + ((start.getTimezoneOffset() - this.getTimezoneOffset()) * 60 * 1000);
     const oneDay = 1000 * 60 * 60 * 24;
     const day = Math.floor(diff / oneDay);
 
@@ -109,9 +107,9 @@ function day_from_date(input) {
 }
 
 function get_next_chronological_payment_date(startDate = new Date()) {
-    const startDateNumber = day_from_date(startDate);
+    const startDateNumber = startDate.asInteger();
 
-    const yearBeginNumber = day_from_date(PAYMENT_FIRST_DATE);
+    const yearBeginNumber = PAYMENT_FIRST_DATE.asInteger();
 
     const gap = startDateNumber - yearBeginNumber;
 
@@ -154,7 +152,12 @@ class MyTutorCalendar {
     constructor() {
         this.tutor = $("#container > nav > div > div.column-2.column-3-l.column-4-m > div > a > span").text().trim()
         this.state = "rest"
+        this.sessions = []
+
+        // Handle syncing button
     }
+
+
 
     /**
      * Checks if a state is allowed and sets it
@@ -174,7 +177,7 @@ class MyTutorCalendar {
      */
     update() {
         // Empty global sessions
-        SESSIONS = []
+        this.sessions = []
 
         const tables = {
             upcoming: '#upcomingSessions tr[role="row"]',
@@ -194,11 +197,11 @@ class MyTutorCalendar {
 
                 const session = Session.fromRow(cells);
 
-                SESSIONS.push(session)
+                window.App.sessions.push(session)
             }
         );
 
-        console.log(SESSIONS)
+        console.log(this.sessions)
     }
 
     /**
@@ -208,7 +211,7 @@ class MyTutorCalendar {
         const message = {
             'referrer': 'SyncEngine.prototype.sync',
             'action': 'sync',
-            'payload': SESSIONS
+            'payload': this.sessions
         }
 
         chrome.runtime.sendMessage(message, response => {
@@ -218,18 +221,18 @@ class MyTutorCalendar {
     }
 
     appendCalendars() {
-        for (var session of SESSIONS) {
+        for (var session of this.sessions) {
             
         }
     }
 }
 
 function init() {
-    const App = new MyTutorCalendar();
+    window.App = new MyTutorCalendar();
 
-    App.update()
+    window.App.update()
 
-    App.sync()
+    window.App.sync()
 }
 
 $(document).ready(() => { init() })
