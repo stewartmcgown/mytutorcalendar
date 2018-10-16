@@ -1,0 +1,29 @@
+/* Calendar Button */
+.mytutor-calendar-button {
+	margin-left: 8px;
+}
+
+.mytutor-calendar-button > .r_button--more::after {
+	content: '\f073';
+	font-family: FontAwesome;
+	background-image: none;
+}
+
+/* Syncing Button */
+#mtc-sync, #mtc-paymenttotalbutton {
+    width: 200px;
+    min-height: 40px;
+	float: right;
+}
+
+/* Payment Date section */
+#mtc-paymentdate {
+	padding-top: 0.4em;
+	color: #939393;
+}
+
+#mtc-paymentdate > span{
+	font-weight: bold;
+	font-size: 1.2em;
+	color: black;
+}

@@ -18,7 +18,7 @@ function toast(content,icon){
     if (icon)
         toast.prepend("<i class='fa fa-" + icon + "'></i>");
 
-    //toast.append("<a href='#' data-dismiss='toast' class='toast-link'>Done</a>")
+    toast.append("<a href='#' data-dismiss='toast' class='toast-link'>Done</a>")
 
     toast.addClass("toast-opening");
 

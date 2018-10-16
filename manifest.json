@@ -3,7 +3,7 @@
 
   "name": "MyTutor Calendar",
   "description": "Add MyTutor bookings to your calendar automatically.",
-  "version": "4",
+  "version": "4.3",
   
   "icons": { "16": "icons/icon16.png",
            "32": "icons/icon32.png",
@@ -12,7 +12,7 @@
   
   "content_scripts":
     [{
-      "matches": ["https://www.mytutor.co.uk/*"],
+      "matches": ["https://www.mytutor.co.uk/tutors/secure/bookings.html"],
 	  "css": ["content/mtc.css","content/tc-toast.css"],
       "js": ["includes/jquery.js", "content/mtc.js","content/tc-simpletoast.js"]
     }],

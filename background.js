@@ -52,12 +52,7 @@ class Request {
     }
 }
 
-chrome.runtime.onMessage.addListener((message) => {
-    main(message)
-
-    // Listener must always return true
-    return true;
-});
+chrome.runtime.onMessage.addListener((message) => { console.log(message); main(message); return true; });
 
 class SyncEngine {
     constructor(sessions, id) {
@@ -218,6 +213,7 @@ class SyncEngine {
 
         }
 
+        return true;
 
     }
 
@@ -226,6 +222,17 @@ class SyncEngine {
         this.remoteSessions = await this.getRemoteSessions()
 
         await this.compareSessions()
+
+        const message = {
+            'referrer': 'SyncEngine.sync',
+            'action': 'completed_sync'
+        }
+
+        // Let page know we're done.
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+            if (tabs[0])
+                chrome.tabs.sendMessage(tabs[0].id, {action: "completed_sync"});
+        })
     }
 }
 
@@ -235,7 +242,7 @@ Date.prototype.toGoogleCalenderString = function () {
 
 function main(message) {
     if (message.action == 'sync') {
-        if (message.payload != undefined) {
+        if (Array.isArray(message.payload)) {
             let syncEngine = new SyncEngine(message.payload)
 
             syncEngine.sync()
